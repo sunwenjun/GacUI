@@ -155,3 +155,194 @@ Expected:
 
 # !!!VERIFIED!!!
 
+
+---
+
+## UPDATE (项目结构分析 / 目录框架)
+
+本次任务对仓库进行了目录级结构梳理（包含隐藏目录），并按“源码层 / 测试层 / 工具层 / 文档与流程层 / 历史兼容层”进行分层解读。
+
+### 1) 顶层职责分区
+
+- `.github/`：协作流程、规范、知识库、脚本、任务日志与提示词。
+- `Source/`：GacUI 主体实现（应用层、控件层、图形与平台层、反射、资源、皮肤、工具辅助）。
+- `Test/`：解决方案、单元测试、Linux vmake 构建入口、测试资源与快照。
+- `Tools/`：开发辅助工具（如 GacGen）。
+- `Release/`：对外发布使用的整理输出。
+- `Import/`：依赖输入层（按仓库规范一般不直接修改）。
+- `Deprecated/`：历史实现与兼容留档。
+- 隐藏目录（`.git/`、`.vscode/`）分别对应版本控制与本地编辑器配置。
+
+### 2) ANSI Art 项目框架（目录树，含隐藏目录）
+
+```ansi
+GacUI/
+├── .cursorrules
+├── .gitattributes
+├── .gitignore
+├── AGENTS.md
+├── CLAUDE.md
+├── LICENSE.md
+├── README.md
+├── GacUIHtml1.gif
+├── GacUIRemote.gif
+├── GacUISnapshotViewer.gif
+│
+├── .git/                     # Git 元数据（隐藏目录）
+│   ├── branches/
+│   ├── hooks/
+│   ├── info/
+│   ├── logs/
+│   │   └── refs/
+│   ├── objects/
+│   │   ├── info/
+│   │   └── pack/
+│   └── refs/
+│       ├── heads/
+│       ├── remotes/
+│       └── tags/
+│
+├── .github/                  # 规范 / 自动化 / 知识库（隐藏目录）
+│   ├── Agent/
+│   │   ├── .yarn/
+│   │   ├── node_modules/
+│   │   ├── packages/
+│   │   └── prompts/
+│   ├── Experiment/
+│   ├── Guidelines/
+│   ├── KnowledgeBase/
+│   │   └── manual/
+│   ├── Learning/
+│   │   └── 2026-02-19-16-17-03/
+│   ├── Scripts/
+│   ├── TaskLogs/
+│   └── prompts/
+│
+├── .vscode/                  # 本地 IDE 配置（隐藏目录）
+│
+├── Deprecated/               # 历史模块
+│   ├── Controls/
+│   │   ├── Styles/
+│   │   └── TextEditorPackage/
+│   ├── Document/
+│   │   └── Clang/
+│   ├── GacStudio/
+│   │   └── GacStudio/
+│   ├── GraphicsElement/
+│   └── PlatformProviders/
+│       └── Windows/
+│
+├── Import/                   # 依赖输入层
+│
+├── Release/                  # 发布输出层
+│   └── IncludeOnly/
+│
+├── Source/                   # 核心源码层
+│   ├── Application/
+│   │   ├── Controls/
+│   │   ├── GraphicsCompositions/
+│   │   └── GraphicsHost/
+│   ├── Compiler/
+│   │   ├── InstanceLoaders/
+│   │   ├── InstanceQuery/
+│   │   ├── RemoteProtocol/
+│   │   └── WorkflowCodegen/
+│   ├── Controls/
+│   │   ├── ListControlPackage/
+│   │   ├── Templates/
+│   │   ├── TextEditorPackage/
+│   │   └── ToolstripPackage/
+│   ├── GraphicsComposition/
+│   ├── GraphicsElement/
+│   ├── NativeWindow/
+│   ├── PlatformProviders/
+│   │   ├── GacGen/
+│   │   ├── Hosted/
+│   │   ├── Remote/
+│   │   ├── RemoteRenderer/
+│   │   └── Windows/
+│   ├── Reflection/
+│   │   └── TypeDescriptors/
+│   ├── Resources/
+│   ├── Skins/
+│   │   └── DarkSkin/
+│   ├── UnitTestUtilities/
+│   │   └── SnapshotViewer/
+│   └── Utilities/
+│       ├── FakeServices/
+│       └── SharedServices/
+│
+├── Test/                     # 测试与构建编排层
+│   ├── GacUISrc/
+│   │   ├── CppTest/
+│   │   ├── CppTest_Metaonly/
+│   │   ├── CppTest_Reflection/
+│   │   ├── GacUI_Compiler/
+│   │   ├── GacUI_Host/
+│   │   ├── Generated_DarkSkin/
+│   │   ├── Generated_Dialogs/
+│   │   ├── Generated_FullControlTest/
+│   │   ├── Generated_RemoteProtocolTest/
+│   │   ├── Generated_UnitTestViewer/
+│   │   ├── Lib_GacUI/
+│   │   ├── Lib_GacUI_App/
+│   │   ├── Lib_GacUI_App_Metaonly/
+│   │   ├── Lib_GacUI_App_Reflection/
+│   │   ├── Lib_GacUI_Compiler/
+│   │   ├── Lib_GacUI_Compiler_Reflection/
+│   │   ├── Lib_GacUI_Metaonly/
+│   │   ├── Lib_GacUI_Reflection/
+│   │   ├── Lib_GacUI_Utilities_Reflection/
+│   │   ├── Metadata_Generate/
+│   │   ├── Metadata_Test/
+│   │   ├── Metadata_UpdateProtocol/
+│   │   ├── Playground/
+│   │   ├── RemotingTest_Core/
+│   │   ├── RemotingTest_Rendering_Win32/
+│   │   ├── Source_GacUI/
+│   │   ├── Source_GacUI_Compiler/
+│   │   ├── Source_GacUI_Core/
+│   │   ├── Source_GacUI_CoreApplication/
+│   │   ├── Source_GacUI_ProtocolCompiler/
+│   │   ├── Source_GacUI_Reflection/
+│   │   ├── Source_GacUI_UnitTest/
+│   │   ├── Source_GacUI_UnitTest_Controls/
+│   │   ├── Source_GacUI_UnitTest_Reflection/
+│   │   ├── Source_GacUI_Utilities/
+│   │   ├── Source_GacUI_Utilities_Controls/
+│   │   ├── Source_GacUI_Utilities_Reflection/
+│   │   ├── Source_GacUI_Windows/
+│   │   ├── Source_Import/
+│   │   ├── Source_Import_Reflection/
+│   │   ├── UnitTest/
+│   │   └── UnitTestViewer/
+│   ├── Linux/
+│   │   ├── CppTest/
+│   │   ├── CppTest_Metaonly/
+│   │   ├── CppTest_Reflection/
+│   │   ├── GacUI_Compiler/
+│   │   ├── Metadata_Generate/
+│   │   ├── Metadata_Test/
+│   │   └── UnitTest/
+│   └── Resources/
+│       ├── App/
+│       ├── CompilerErrorTests/
+│       ├── HostedWindowManagerTests/
+│       ├── Metadata/
+│       ├── UnitTestResources/
+│       └── UnitTestSnapshots/
+│
+├── ToDo/
+└── Tools/
+    └── GacGen/
+        ├── Bin/
+        └── GacGen/
+```
+
+### 3) 结构解读（架构视角）
+
+- 这是一个“**源码（Source）+ 工程编排（Test/GacUISrc）+ 指南知识（.github）**”三元结构仓库。
+- `Test/GacUISrc` 不仅是测试目录，更是**完整解决方案组织中心**，承担项目分拆、生成产物项目、反射/元数据相关工程聚合。
+- `Source/PlatformProviders` 与 `Source/Compiler/RemoteProtocol` 共同体现了 **跨平台渲染抽象 + 远程协议能力** 的架构主线。
+- `Deprecated/` 保留历史能力，可用于回溯设计演进，不应与当前主路径（Source/Test）混用。
+- `.github/KnowledgeBase` + `.github/Guidelines` 形成“编码规则与 API 决策知识底座”，是仓库内任务执行的元规范层。
