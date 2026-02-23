@@ -320,3 +320,139 @@ Portal 解决“智能任务协同”，而脚本解决“工程动作标准化�
 ```
 
 这就是你说的“开发者自己调用 Copilot SDK，实现一套编码开发过程”，并且它已经从“个人脚本”进化成“团队可复用流程”。
+
+---
+
+## 9. 直接回答：当前项目有没有自动化做测试验证？
+
+有，而且是**两层自动化验证体系**：
+
+1. **主仓工程层（C++）自动化**：通过 `.github/Scripts` 统一构建与测试入口（`copilotBuild.ps1` + `copilotExecute.ps1`）。
+2. **Agent 门户层（TypeScript）自动化**：通过 `.github/Agent` 的 workspace 脚本执行编译 + 启动服务 + API/UI 自动化测试（含 Playwright）。
+
+换句话说，这个仓库不仅有自动化测试，而且把“构建、执行、日志、回收”都流程化了。
+
+### 9.1 主仓 C++ 测试自动化如何实现
+
+#### 机制
+
+- `copilotBuild.ps1`：
+  - 自动向上查找 `*.sln`（`GetSolutionDir`），
+  - 统一调用 msbuild，
+  - 输出到 `Build.log`。
+- `copilotExecute.ps1`：
+  - 自动定位最近构建出的目标 exe，
+  - 自动读取 `.vcxproj.user` 的调试参数过滤，
+  - 输出到 `Execute.log`。
+- `Running-UnitTest.md` 与 `Building.md` 规定“必须通过这些脚本”，避免人为命令漂移。
+
+#### 自动化价值
+
+- 降低“我本地能跑/你本地不能跑”的差异；
+- 测试结果可审计（日志文件落盘）；
+- 支持在任务流程中反复回归验证。
+
+### 9.2 Agent 门户（CopilotPortal）自动化如何实现
+
+#### 机制
+
+- `.github/Agent/package.json` 的 `build` 脚本：
+  - `yarn compile`
+  - `yarn testStart`
+  - `yarn testExecute`
+- `startServer.mjs`：先以 `--test` 模式启动 portal，并轮询 `/api/test` 等待服务就绪。
+- `runTests.mjs`：串行运行 Node test 文件（API、工作流、Web/Playwright），最后**无论成功失败都调用 `/api/stop` 清理服务**。
+
+#### 自动化价值
+
+- 这是“服务级自动化回归”，不仅测函数，还测 API 合约和页面交互；
+- 包含生命周期兜底（always stop server），减少测试残留进程影响下一轮。
+
+### 9.3 一个完整案例：从代码改动到自动化验证闭环
+
+假设你修改了 Agent 的 live 响应聚合逻辑（例如 `sharedApi.ts` 中 delta 合并策略），期望验证没有破坏行为：
+
+#### Step 1：编译
+
+执行 `yarn compile`，确保 TypeScript 产物可生成。
+
+#### Step 2：启动测试服务
+
+执行 `yarn testStart`，`startServer.mjs` 会：
+- 启动 `dist/index.js --test`；
+- 轮询 `http://localhost:8888/api/test`；
+- 就绪后进入下一步。
+
+#### Step 3：执行自动化测试
+
+执行 `yarn testExecute`，`runTests.mjs` 调用 `node --test` 跑：
+- `liveOptimize.test.mjs`（流式增量聚合核心）
+- `api.test.mjs`（session/task/job API 合约）
+- `web.*.mjs`（Playwright 页面行为）
+- 其他工作流测试
+
+#### Step 4：自动清理
+
+`finally` 块调用 `/api/stop`，保证服务被停止。
+
+#### Step 5：结论判定
+
+- 若测试通过：说明改动在 API、流式行为、页面交互层均未破坏既有语义；
+- 若失败：根据具体用例回溯到响应聚合、live token 游标、或前端渲染层。
+
+### 9.4 推理式逐步分析（为什么是“自动化验证”，不是“手动跑脚本”）
+
+**推理 A：有统一入口吗？**
+有，`package.json` 与 `.ps1` 都给出标准化入口。
+
+**推理 B：有可重复执行流程吗？**
+有，固定顺序：编译 -> 启动 -> 测试 -> 清理。
+
+**推理 C：有机器可判定结果吗？**
+有，Node test/Playwright 的退出码与日志可直接判定。
+
+**推理 D：有失败后可定位线索吗？**
+有，测试文件维度（api/work/web/liveOptimize）可快速定位模块。
+
+**推理 E：有资源回收保障吗？**
+有，`runTests.mjs` 的 `finally` 强制 stop server，避免脏进程污染下一轮。
+
+所以它符合自动化验证系统的核心特征：
+
+- 标准化入口
+- 可重复执行
+- 可机器判定
+- 可追踪失败
+- 可自动清理
+
+### 9.5 ANSI Art 时序图：自动化测试验证流程
+
+```ansi
++------------------+        +-------------------------+        +-------------------------+
+| Developer / CI   |        | Agent Test Orchestrator |        | Copilot Portal Server   |
++--------+---------+        +------------+------------+        +------------+------------+
+         |                               |                                  |
+         | 1) yarn build                 |                                  |
+         |------------------------------>| compile -> testStart -> testExec |
+         |                               |                                  |
+         |                               | 2) node test/startServer.mjs     |
+         |                               |--------------------------------->| spawn dist/index.js --test
+         |                               |<---------------------------------| /api/test ready
+         |                               |                                  |
+         |                               | 3) node --test ...               |
+         |                               |--------------------------------->| call /api/* during tests
+         |                               |<---------------------------------| api responses / live events
+         |                               |                                  |
+         |                               | 4) finally: fetch /api/stop      |
+         |                               |--------------------------------->| shutdown server/client
+         |                               |<---------------------------------| stopped
+         |                               |                                  |
+         | 5) exit code + logs           |                                  |
+         |<------------------------------| pass/fail                        |
+         |                               |                                  |
++--------+---------+        +------------+------------+        +------------+------------+
+| C++ Build/Test   |        | .github/Scripts(.ps1)   |        | Build.log / Execute.log |
++------------------+        +-------------------------+        +-------------------------+
+   ^ copilotBuild/copilotExecute  ^ standard entry + log persistence
+```
+
