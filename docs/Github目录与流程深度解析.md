@@ -456,3 +456,16 @@ Portal 解决“智能任务协同”，而脚本解决“工程动作标准化�
    ^ copilotBuild/copilotExecute  ^ standard entry + log persistence
 ```
 
+
+---
+
+## 10. 一句话结论（针对你的问题）
+
+你问的是“**这个项目本身**有没有自动化测试验证体系”。
+
+答案：**有，而且已经成体系**。
+
+- 对主仓 C++ 工程：使用 `.github/Scripts/copilotBuild.ps1` + `.github/Scripts/copilotExecute.ps1` 做统一构建与测试执行，并落日志到 `Build.log/Execute.log`。
+- 对 `.github/Agent` 子系统：使用 workspace 脚本 `build = compile + testStart + testExecute`，自动完成“编译 -> 启动测试服务 -> 运行 Node/Playwright 测试 -> 停服清理”。
+
+所以这不是“零散脚本”，而是“**可重复、可判定、可追踪**”的自动化验证体系。
